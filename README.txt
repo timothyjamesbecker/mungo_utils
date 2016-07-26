@@ -1,6 +1,10 @@
 # mungo_utils
 Automated Mungo Enterprises Eurorack Focused WAV Bit Depth and Sample Rate Conversion Utilities
 
+requires: python 2.7.10+, numpy, scipy
+
+24 bit file handling is based on the python multiple bit depth converter tool wavio written by Warren Weckesser
+
 ./mungo_utils.py -h
 #usage: mungo_utils.py [-h] [-i AUDIO_INPUT_DIR] [-e AUDIO_EXT] [-m]
                       [-t TARGET_MUNGO_MODULE] [-o MUNGO_OUTPUT_DIR]
