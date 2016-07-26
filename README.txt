@@ -66,8 +66,8 @@ processing ./test/aifs/GP SN 2.aif
 16 bit sample depth detected
 44100Hz sample rate detected
 ---------------------------------------------------
-processing ./test/wavs/CoffeeBeansSeq1.wav
+processing ./test/wavs/CoffeeBeansSeq1_Test.wav
 2 audio channels detected
-16 bit sample depth detected
-44100Hz sample rate detected
+24 bit sample depth detected
+96000Hz sample rate detected
 ---------------------------------------------------
