@@ -42,6 +42,7 @@ __version__ = "0.0.4.dev0"
 def _wav2array(nchannels, sampwidth, rate, data):
     """data must be the string containing the bytes from the wav file."""
     num_samples, remainder = divmod(len(data), sampwidth * nchannels)
+    print('%s audio channels detected'%nchannels)
     if remainder > 0:
         raise ValueError('The length of data is not a multiple of '
                          'sampwidth * num_channels.')
