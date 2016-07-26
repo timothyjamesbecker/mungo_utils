@@ -68,6 +68,11 @@ def multi_to_mono(data,average=True):
         A
     return A
 
+#compute and remove DC offset
+#we are assuming the data here is a mono audio array
+def remove_dc_offset(mono):
+    return mono-np.int32(round(np.mean(mono),0))
+
 #up or down samples based on the target samples
 #using scipy.signal.resample which is an FFT based resampling method (which is slow but decent sounding)
 def resample(mono,target,module):
@@ -81,6 +86,7 @@ def read_aifs_or_wavs(in_dir,
                       exts=['aif','wav'],
                       module='G0',
                       average=False,
+                      dc=True,
                       target={'G0':500000,'S0':200000,'W0':4000,'C0':12000}):
     audio_files = []
     for ext in exts:
@@ -91,9 +97,13 @@ def read_aifs_or_wavs(in_dir,
         try:
             print('processing %s'%audio_file)
             if audio_file.rsplit('.')[-1].upper().find('AIF')>-1: #search for aif style file extension
-                data += [resample(multi_to_mono(aifcio.read(audio_file).data,average=False),target,module)]
+                resampled = resample(multi_to_mono(aifcio.read(audio_file).data,average=average),target,module)
+                if dc: resampled = remove_dc_offset(resampled)
+                data += [resampled]
             elif audio_file.rsplit('.')[-1].upper().find('WAV')>-1: #search for wav style file extension
-                data += [resample(multi_to_mono(wavio.read(audio_file).data,average=False),target,module)]
+                resampled = resample(multi_to_mono(wavio.read(audio_file).data,average=average),target,module)
+                if dc: resampled = remove_dc_offset(resampled)
+                data += [resampled]
             else:
                 ns += [audio_file] #extension and type is not supported
             print('---------------------------------------------------')
@@ -126,5 +136,5 @@ def write_mungo(out_dir,
         j += 1
     return True
 #now batch process all the inputs and autogenerate the mungo WAV files
-data = read_aifs_or_wavs(in_dir,exts,module,mix)
+data = read_aifs_or_wavs(in_dir,exts,module,mix,True)
 write_mungo(mungo_out_dir,data,module)
