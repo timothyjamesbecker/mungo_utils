@@ -39,7 +39,7 @@ import numpy as _np
 __version__ = "0.0.4.dev0"
 
 
-def _wav2array(nchannels, sampwidth, data):
+def _wav2array(nchannels, sampwidth, rate, data):
     """data must be the string containing the bytes from the wav file."""
     num_samples, remainder = divmod(len(data), sampwidth * nchannels)
     if remainder > 0:
@@ -49,12 +49,16 @@ def _wav2array(nchannels, sampwidth, data):
         raise ValueError("sampwidth must not be greater than 4.")
 
     if sampwidth == 3:
+        print("24 bit sample depth detected")
+        print("%sHz sample rate detected"%rate)
         a = _np.empty((num_samples, nchannels, 4), dtype=_np.uint8)
         raw_bytes = _np.fromstring(data, dtype=_np.uint8)
         a[:, :, :sampwidth] = raw_bytes.reshape(-1, nchannels, sampwidth)
         a[:, :, sampwidth:] = (a[:, :, sampwidth - 1:sampwidth] >> 7) * 255
         result = a.view('<i4').reshape(a.shape[:-1])
     else:
+        print("%s bit sample depth detected"%(sampwidth*8))
+        print("%sHz sample rate detected"%rate)
         # 8 bit samples are stored as unsigned ints; others as signed ints.
         dt_char = 'u' if sampwidth == 1 else 'i'
         a = _np.fromstring(data, dtype='<%s%d' % (dt_char, sampwidth))
@@ -151,8 +155,9 @@ def read(file):
     nframes = wav.getnframes()
     data = wav.readframes(nframes)
     wav.close()
-    array = _wav2array(nchannels, sampwidth, data)
+    array = _wav2array(nchannels, sampwidth, rate, data)
     w = Wav(data=array, rate=rate, sampwidth=sampwidth)
+#    print(w)
     return w
 
 

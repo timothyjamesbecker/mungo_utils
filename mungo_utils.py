@@ -85,17 +85,18 @@ def read_aifs_or_wavs(in_dir,
     audio_files = []
     for ext in exts:
         audio_files += glob.glob(in_dir+'/*.'+ext) #load the extensions that we want
-    for i in audio_files: print i
         
     data,err,ns = [],[],[]
     for audio_file in audio_files:
         try:
-            if audio_file.rsplit('.')[-1].upper().find('AIF')>-1: #search the file extension
+            print('processing %s'%audio_file)
+            if audio_file.rsplit('.')[-1].upper().find('AIF')>-1: #search for aif style file extension
                 data += [resample(multi_to_mono(aifcio.read(audio_file).data,average=False),target,module)]
-            elif audio_file.rsplit('.')[-1].upper().find('AIF')>-1: #search the file extension
+            elif audio_file.rsplit('.')[-1].upper().find('WAV')>-1: #search for wav style file extension
                 data += [resample(multi_to_mono(wavio.read(audio_file).data,average=False),target,module)]
             else:
                 ns += [audio_file] #extension and type is not supported
+            print('---------------------------------------------------')
         except Exception:
             err += [audio_file]
             pass

@@ -39,7 +39,7 @@ import numpy as _np
 __version__ = "0.0.4.dev0"
 
 
-def _aifc2array(nchannels, sampwidth, data):
+def _aifc2array(nchannels, sampwidth, rate, data):
     """data must be the string containing the bytes from the aif file."""
     num_samples, remainder = divmod(len(data), sampwidth * nchannels)
     print('%s audio channels detected'%nchannels)
@@ -51,6 +51,7 @@ def _aifc2array(nchannels, sampwidth, data):
 
     if sampwidth == 3:
         print("24 bit sample depth detected")
+        print("%sHz sample rate detected"%rate)
         a = _np.empty((num_samples, nchannels, 4), dtype=_np.uint8)
         raw_bytes = _np.fromstring(data, dtype=_np.uint8).byteswap() #
         a[:, :, :sampwidth] = raw_bytes.reshape(-1, nchannels, sampwidth)
@@ -58,6 +59,7 @@ def _aifc2array(nchannels, sampwidth, data):
         result = a.view('<i4').reshape(a.shape[:-1]).byteswap()
     else:
         print("%s bit sample depth detected"%(sampwidth*8))
+        print("%sHz sample rate detected"%rate)
         # 8 bit samples are stored as unsigned ints; others as signed ints.
         dt_char = 'u' if sampwidth == 1 else 'i'
         a = _np.fromstring(data, dtype='<%s%d' % (dt_char, sampwidth))
@@ -123,8 +125,9 @@ def read(file):
     nframes = aif.getnframes()
     data = aif.readframes(nframes)
     aif.close()
-    array = _aifc2array(nchannels, sampwidth, data)
+    array = _aifc2array(nchannels, sampwidth, rate, data)
     a = Aifc(data=array, rate=rate, sampwidth=sampwidth)
+#    print(a)
     return a
 
 
