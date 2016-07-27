@@ -1,13 +1,16 @@
-# mungo_utils
-Automated Mungo Enterprises Eurorack Focused WAV Bit Depth and Sample Rate Conversion Utilities
+Mungo Enterprises Eurorack Module Focused Batch WAV Audio Processing and File Generation Utilities
+(c) Timothy James Becker 2016
 
 requires: python 2.7.10+, numpy, scipy
 
-24 bit file handling is based on the python multiple bit depth converter tool wavio written by Warren Weckesser
+notes:
+(1) 24 bit file handling is based on the python multiple bit depth converter tool wavio written by Warren Weckesser (c) 2015
+(2) phase_vocoder written by Victor Lazzarini (c) 2010
 
 ./mungo_utils.py -h
-#usage: mungo_utils.py [-h] [-i AUDIO_INPUT_DIR] [-e AUDIO_EXT] [-m]
-                      [-t TARGET_MUNGO_MODULE] [-o MUNGO_OUTPUT_DIR]
+usage: mungo_utils.py [-h] [-I AUDIO_INPUT_DIR] [-E AUDIO_EXT]
+                      [-T TARGET_MUNGO_MODULE] [-O MUNGO_OUTPUT_DIR] [-m] [-n]
+                      [-f FADE] [-l] [-p] [-t]
 
 Automated Mungo Enterprises Eurorack Focused WAV Bit Depth and Sample Rate
 Conversion Utilities Tested with WAV and AIFF audio files with 1|2 chnannels
@@ -19,59 +22,136 @@ bit WAV file format
 
 optional arguments:
   -h, --help            show this help message and exit
-  -i AUDIO_INPUT_DIR, --audio_input_dir AUDIO_INPUT_DIR
+  -I AUDIO_INPUT_DIR, --audio_input_dir AUDIO_INPUT_DIR
                         audio directory to search [required]
-  -e AUDIO_EXT, --audio_ext AUDIO_EXT
+  -E AUDIO_EXT, --audio_ext AUDIO_EXT
                         either or aif and wav audio extensions to convert
                         [aif,wav]
-  -m, --mix             mix multiple channels [False]
-  -t TARGET_MUNGO_MODULE, --target_mungo_module TARGET_MUNGO_MODULE
+  -T TARGET_MUNGO_MODULE, --target_mungo_module TARGET_MUNGO_MODULE
                         the mungo target module to write to [G0=500K]
-  -o MUNGO_OUTPUT_DIR, --mungo_output_dir MUNGO_OUTPUT_DIR
+  -O MUNGO_OUTPUT_DIR, --mungo_output_dir MUNGO_OUTPUT_DIR
                         mungo output directory [required]
+  -m, --mix             mix multiple channels [False]
+  -n, --norm            normalize audio and remove DC offset [False]
+  -f FADE, --fade FADE  target buffer fade out in samples default is
+                        exponential fade [256]
+  -l, --loud            make loud [False]
+  -p, --phase           apply phase vocoder timestretch [False]
+  -t, --trim            trim begining and end of file based on amplitude
+                        [False]
   
   [EXAMPLE USING THE GPL TEST FILES]
   
-./mungo_utils.py -i "./test/*" -o ./test/C0/converted/ -t C0
+./mungo_utils.py -I "./test/*" -O ./test/C0/converted/ -T C0 -n
 using audio input directory:
 ./test/*
+processing ./test/aifs/2600 G2  4.aif
+1 audio channels detected
+16 bit sample depth detected
+44100Hz sample rate detected
+resampled to 12000Hz
+trimed to sample start 0
+audio array of <type 'numpy.int32'>
+amplitude center at 1 correcting for DC offset
+correction of amplitude center now at 0 correcting for DC offset
+processing fade out
+---------------------------------------------------
 processing ./test/aifs/GP CHH 3.aif
 1 audio channels detected
 16 bit sample depth detected
 44100Hz sample rate detected
+resampled to 12000Hz
+trimed to sample start 13
+audio array of <type 'numpy.int32'>
+amplitude center at 0 correcting for DC offset
+correction of amplitude center now at 0 correcting for DC offset
+processing fade out
 ---------------------------------------------------
 processing ./test/aifs/GP CR 3.aif
 1 audio channels detected
 16 bit sample depth detected
 44100Hz sample rate detected
+resampled to 12000Hz
+trimed to sample start 28
+audio array of <type 'numpy.int32'>
+amplitude center at 0 correcting for DC offset
+correction of amplitude center now at 0 correcting for DC offset
+processing fade out
 ---------------------------------------------------
 processing ./test/aifs/GP KD 2.aif
 1 audio channels detected
 16 bit sample depth detected
 44100Hz sample rate detected
+resampled to 12000Hz
+trimed to sample start 60
+audio array of <type 'numpy.int32'>
+amplitude center at 0 correcting for DC offset
+correction of amplitude center now at 0 correcting for DC offset
+processing fade out
 ---------------------------------------------------
 processing ./test/aifs/GP OHH 2.aif
 1 audio channels detected
 16 bit sample depth detected
 44100Hz sample rate detected
+resampled to 12000Hz
+trimed to sample start 24
+audio array of <type 'numpy.int32'>
+amplitude center at 0 correcting for DC offset
+correction of amplitude center now at 0 correcting for DC offset
+processing fade out
 ---------------------------------------------------
 processing ./test/aifs/GP RCB 3.aif
 1 audio channels detected
 16 bit sample depth detected
 44100Hz sample rate detected
+resampled to 12000Hz
+trimed to sample start 0
+audio array of <type 'numpy.int32'>
+amplitude center at 0 correcting for DC offset
+correction of amplitude center now at 0 correcting for DC offset
+processing fade out
 ---------------------------------------------------
 processing ./test/aifs/GP RS 1.aif
 1 audio channels detected
 16 bit sample depth detected
 44100Hz sample rate detected
+resampled to 12000Hz
+trimed to sample start 15
+audio array of <type 'numpy.int32'>
+amplitude center at 0 correcting for DC offset
+correction of amplitude center now at 0 correcting for DC offset
+processing fade out
 ---------------------------------------------------
 processing ./test/aifs/GP SN 2.aif
 1 audio channels detected
 16 bit sample depth detected
 44100Hz sample rate detected
+resampled to 12000Hz
+trimed to sample start 9
+audio array of <type 'numpy.int32'>
+amplitude center at 0 correcting for DC offset
+correction of amplitude center now at 0 correcting for DC offset
+processing fade out
 ---------------------------------------------------
 processing ./test/wavs/CoffeeBeansSeq1_Test.wav
 2 audio channels detected
 24 bit sample depth detected
 96000Hz sample rate detected
+resampled to 12000Hz
+trimed to sample start 0
+audio array of <type 'numpy.int32'>
+amplitude center at 1 correcting for DC offset
+correction of amplitude center now at 0 correcting for DC offset
+processing fade out
+---------------------------------------------------
+processing ./test/wavs/timoka.wav
+1 audio channels detected
+16 bit sample depth detected
+44100Hz sample rate detected
+resampled to 12000Hz
+trimed to sample start 27
+audio array of <type 'numpy.int32'>
+amplitude center at 0 correcting for DC offset
+correction of amplitude center now at 0 correcting for DC offset
+processing fade out
 ---------------------------------------------------

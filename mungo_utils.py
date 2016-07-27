@@ -4,12 +4,11 @@
 import argparse
 import os
 import glob
-import numpy as np
-#here is the resampling algorithm library
-import scipy.signal as sps
 #here are libraries that can handle 24-bit depths
 import wavio
 import aifcio
+#dsp libs need numpy and scipy
+import dsp
 
 #parse commandline arguments for usage
 overview = """
@@ -21,11 +20,17 @@ for exampl the C0 has a buffer of 12000, so any audio file will be auto resample
 converted to a 16 bit WAV file format\n
 """
 parser = argparse.ArgumentParser(description=overview)
-parser.add_argument('-i', '--audio_input_dir',type=str, help='audio directory to search\t[required]')
-parser.add_argument('-e', '--audio_ext',type=str, help='either or aif and wav audio extensions to convert\t[aif,wav]')
+parser.add_argument('-I', '--audio_input_dir',type=str, help='audio directory to search\t[required]')
+parser.add_argument('-E', '--audio_ext',type=str, help='either or aif and wav audio extensions to convert\t[aif,wav]')
+parser.add_argument('-T', '--target_mungo_module',type=str, help='the mungo target module to write to\t[G0=500K]')
+parser.add_argument('-O', '--mungo_output_dir',type=str, help='mungo output directory\t[required]')
+#DSP arguments for optional processing
 parser.add_argument('-m', '--mix',action='store_true', help='mix multiple channels\t[False]')
-parser.add_argument('-t', '--target_mungo_module',type=str, help='the mungo target module to write to\t[G0=500K]')
-parser.add_argument('-o', '--mungo_output_dir',type=str, help='mungo output directory\t[required]')
+parser.add_argument('-n', '--norm',action='store_true', help='normalize audio and remove DC offset\t[False]')
+parser.add_argument('-f', '--fade',type=int, help='target buffer fade out in samples default is exponential fade\t[256]')
+parser.add_argument('-l', '--loud',action='store_true', help='make loud\t[False]')
+parser.add_argument('-p', '--phase',action='store_true', help='apply phase vocoder timestretch\t[False]')
+parser.add_argument('-t', '--trim',action='store_true', help='trim begining and end of file based on amplitude\t[False]')
 args = parser.parse_args()
 #check all the options and set defaults that have not been specified
 if args.audio_input_dir is not None:
@@ -43,41 +48,21 @@ if args.audio_ext is not None:
     exts = args.audio_ext.split(',') #comman seperated list
 else:
     exts = ['aif','wav']
-if args.mix is not None:
-    mix = args.mix
+
+mix   = args.mix
+norm  = args.norm
+loud  = args.loud
+trim  = args.trim
+phase = args.phase
+if args.fade is not None:
+    fade = args.fade
 else:
-    mix = False
+    fade = 96
+
 if args.target_mungo_module is not None:
     module = args.target_mungo_module
 else:
     module = 'G0'
-
-#either mix all channels together or take the first channel only
-def multi_to_mono(data,average=True):
-    if len(data)>0 and len(data[0])>0:
-        if average:
-            s = len(data)    #channel count
-            c = len(data[0]) #number of samples
-            t = data[0,0]    #at least one channel and one sample to get its data type
-            A = np.zeros((s,),dtype=t) #should be 32bit into or i4 int32
-            for i in range(c):
-                A += data[:,i] 
-        else:
-            A = data[:,0]
-    else:
-        A
-    return A
-
-#compute and remove DC offset
-#we are assuming the data here is a mono audio array
-def remove_dc_offset(mono):
-    return mono-np.int32(round(np.mean(mono),0))
-
-#up or down samples based on the target samples
-#using scipy.signal.resample which is an FFT based resampling method (which is slow but decent sounding)
-def resample(mono,target,module):
-    resampled_data = sps.resample(mono,target[module]).astype('i4')
-    return resampled_data
 
 #auto detect the file type based on supplied extensions given the input directory
 #target the appropriate number of resampling buffer from mungo manuals
@@ -85,8 +70,10 @@ def resample(mono,target,module):
 def read_aifs_or_wavs(in_dir,
                       exts=['aif','wav'],
                       module='G0',
-                      average=False,
-                      dc=True,
+                      mix=False,
+                      norm=False,
+                      phase=False,
+                      fade=96,
                       target={'G0':500000,'S0':200000,'W0':4000,'C0':12000}):
     audio_files = []
     for ext in exts:
@@ -96,13 +83,23 @@ def read_aifs_or_wavs(in_dir,
     for audio_file in audio_files:
         try:
             print('processing %s'%audio_file)
-            if audio_file.rsplit('.')[-1].upper().find('AIF')>-1: #search for aif style file extension
-                resampled = resample(multi_to_mono(aifcio.read(audio_file).data,average=average),target,module)
-                if dc: resampled = remove_dc_offset(resampled)
+            if audio_file.rsplit('.')[-1].upper().find('AIF')>-1:             #search for aif style file extension
+                mono,rate = dsp.multi_to_mono(aifcio.read(audio_file),mix)    #convert to mono
+                if phase: #apply phase vocoder time stretch to keep similiar pitching
+                    print('phase vocoding')
+                    mono = dsp.phase_vocoder(mono,rate,1024,1.0*target[module]/rate)
+                resampled = dsp.resample(mono,target,module)   #up/down sample
+                if norm: resampled = dsp.normalize(resampled,target[module])  #normalize and clean final result
+                if fade > 0: resampled = dsp.fade_out(resampled,fade)                
                 data += [resampled]
-            elif audio_file.rsplit('.')[-1].upper().find('WAV')>-1: #search for wav style file extension
-                resampled = resample(multi_to_mono(wavio.read(audio_file).data,average=average),target,module)
-                if dc: resampled = remove_dc_offset(resampled)
+            elif audio_file.rsplit('.')[-1].upper().find('WAV')>-1:          #search for wav style file extension
+                mono,rate = dsp.multi_to_mono(wavio.read(audio_file),mix)    #convert to mono
+                if phase: #apply phase vocoder time strecth to keep similiar pitching
+                    print('phase vocoding')
+                    mono = dsp.phase_vocoder(mono,rate,1024,1.0*target[module]/rate)
+                resampled = dsp.resample(mono,target,module)   #up/down sample
+                if norm: resampled = dsp.normalize(resampled,target[module])  #normalize and clean final result
+                if fade > 0: resampled = dsp.fade_out(resampled,fade)                
                 data += [resampled]
             else:
                 ns += [audio_file] #extension and type is not supported
@@ -135,6 +132,7 @@ def write_mungo(out_dir,
         wavio.write(last_dir+prefix[module]+str(j)+'.wav',data[i],len(data[i]),sampwidth=2)
         j += 1
     return True
+    
 #now batch process all the inputs and autogenerate the mungo WAV files
-data = read_aifs_or_wavs(in_dir,exts,module,mix,True)
+data = read_aifs_or_wavs(in_dir,exts,module,mix,norm,phase,fade)
 write_mungo(mungo_out_dir,data,module)
