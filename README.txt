@@ -42,10 +42,10 @@ optional arguments:
   
   [EXAMPLE USING THE GPL TEST FILES]
   
-./mungo_utils.py -I "./test/*" -O ./test/C0/converted/ -T C0 -n
+./mungo_utils.py -I "./test/*" -O ./test/converted/ -T C0 -n
 using audio input directory:
 ./test/*
-processing ./test/aifs/2600 G2  4.aif
+processing ./test/aifs/Arp_2600.aif
 1 audio channels detected
 16 bit sample depth detected
 44100Hz sample rate detected
@@ -133,18 +133,7 @@ amplitude center at 0 correcting for DC offset
 correction of amplitude center now at 0 correcting for DC offset
 processing fade out
 ---------------------------------------------------
-processing ./test/wavs/CoffeeBeansSeq1_Test.wav
-2 audio channels detected
-24 bit sample depth detected
-96000Hz sample rate detected
-resampled to 12000Hz
-trimed to sample start 0
-audio array of <type 'numpy.int32'>
-amplitude center at 1 correcting for DC offset
-correction of amplitude center now at 0 correcting for DC offset
-processing fade out
----------------------------------------------------
-processing ./test/wavs/timoka.wav
+processing ./test/wavs/DC_Offset_Test.wav
 1 audio channels detected
 16 bit sample depth detected
 44100Hz sample rate detected
@@ -152,6 +141,17 @@ resampled to 12000Hz
 trimed to sample start 27
 audio array of <type 'numpy.int32'>
 amplitude center at 0 correcting for DC offset
+correction of amplitude center now at 0 correcting for DC offset
+processing fade out
+---------------------------------------------------
+processing ./test/wavs/High_Resolution_24b_Test.wav
+2 audio channels detected
+24 bit sample depth detected
+96000Hz sample rate detected
+resampled to 12000Hz
+trimed to sample start 0
+audio array of <type 'numpy.int32'>
+amplitude center at 1 correcting for DC offset
 correction of amplitude center now at 0 correcting for DC offset
 processing fade out
 ---------------------------------------------------
