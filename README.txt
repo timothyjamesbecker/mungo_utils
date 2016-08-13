@@ -24,21 +24,15 @@ optional arguments:
   -h, --help            show this help message and exit
   -I AUDIO_INPUT_DIR, --audio_input_dir AUDIO_INPUT_DIR
                         audio directory to search [required]
-  -E AUDIO_EXT, --audio_ext AUDIO_EXT
-                        either or aif and wav audio extensions to convert
-                        [aif,wav]
-  -T TARGET_MUNGO_MODULE, --target_mungo_module TARGET_MUNGO_MODULE
-                        the mungo target module to write to [G0=500K]
-  -O MUNGO_OUTPUT_DIR, --mungo_output_dir MUNGO_OUTPUT_DIR
-                        mungo output directory [required]
+  -E AUDIO_EXT, --audio_ext AUDIO_EXT either or aif and wav audio extensions to convert [aif,wav]
+  -T TARGET_MUNGO_MODULE, --target_mungo_module TARGET_MUNGO_MODULE the mungo target module to write to [G0=500K]
+  -O MUNGO_OUTPUT_DIR, --mungo_output_dir MUNGO_OUTPUT_DIR mungo output directory [required]
   -m, --mix             mix multiple channels [False]
   -n, --norm            normalize audio and remove DC offset [False]
-  -f FADE, --fade FADE  target buffer fade out in samples default is
-                        exponential fade [256]
-  -l, --loud            make loud [False]
+  -f FADE, --fade FADE  target buffer fade out in samples default is exponential fade [256]
+  -r, --reverse         reverse the buffer [False]
   -p, --phase           apply phase vocoder timestretch [False]
-  -t, --trim            trim begining and end of file based on amplitude
-                        [False]
+  -t, --trim            trim begining and end of file based on amplitude[False]
   
   [EXAMPLE USING THE GPL TEST FILES]
   

@@ -17,9 +17,11 @@ def read_aifs_or_wavs(in_dir,
                       exts=['aif','wav'],
                       module='G0',
                       mix=False,
+                      trim=False,
                       norm=False,
                       phase=False,
-                      fade=96,
+                      rev=False,
+                      fade=256,
                       target={'G0':500000,'S0':200000,'W0':4000,'C0':12000}):
     audio_files = []
     for ext in exts:
@@ -28,27 +30,21 @@ def read_aifs_or_wavs(in_dir,
     data,err,ns = [],[],[]
     for audio_file in audio_files:
         try:
-            print('processing %s'%audio_file)
-            if audio_file.rsplit('.')[-1].upper().find('AIF')>-1:             #search for aif style file extension
-                mono,rate = dsp.multi_to_mono(aifcio.read(audio_file),mix)    #convert to mono
-                if phase: #apply phase vocoder time stretch to keep similiar pitching
-                    print('phase vocoding')
-                    mono = dsp.phase_vocoder(mono,rate,1024,1.0*target[module]/rate)
-                resampled = dsp.resample(mono,target,module)   #up/down sample
-                if norm: resampled = dsp.normalize(resampled,target[module])  #normalize and clean final result
-                if fade > 0: resampled = dsp.fade_out(resampled,fade)                
-                data += [resampled]
-            elif audio_file.rsplit('.')[-1].upper().find('WAV')>-1:          #search for wav style file extension
-                mono,rate = dsp.multi_to_mono(wavio.read(audio_file),mix)    #convert to mono
-                if phase: #apply phase vocoder time stretch to keep similiar pitching
-                    print('phase vocoding')
-                    mono = dsp.phase_vocoder(mono,rate,1024,1.0*target[module]/rate)
-                resampled = dsp.resample(mono,target,module)   #up/down sample
-                if norm: resampled = dsp.normalize(resampled,target[module])  #normalize and clean final result
-                if fade > 0: resampled = dsp.fade_out(resampled,fade)                
-                data += [resampled]
+            print('processing %s'%audio_file) #search for aif style file extension
+            is_aif = audio_file.rsplit('.')[-1].upper().find('AIF')>-1
+            is_wav = audio_file.rsplit('.')[-1].upper().find('WAV')>-1
+            if not is_aif and not is_wav: #extension not supported
+                ns += [audio_file]
             else:
-                ns += [audio_file] #extension and type is not supported
+                if   is_aif: mono,rate = dsp.multi_to_mono(aifcio.read(audio_file),mix)    #convert to mono
+                elif is_wav: mono,rate = dsp.multi_to_mono(wavio.read(audio_file),mix)     #convert to mono
+            if trim:  mono = dsp.trim(mono)
+            if phase: mono = dsp.phase_vocoder(mono,rate,1024,1.0*target[module]/rate)     #timestretching via PV
+            resampled = dsp.resample(mono,target,module)                                   #up/down sample
+            if norm: resampled = dsp.normalize(resampled)                                  #normalize and clean final result
+            if fade > 0: resampled = dsp.fade_out(resampled,fade)                          #exp fade out
+            if rev: resampled = dsp.reverse(resampled)                                     #option reverse
+            data += [resampled]
             print('---------------------------------------------------')
         except Exception:
             err += [audio_file]
@@ -99,7 +95,7 @@ if __name__ == '__main__':
     parser.add_argument('-m', '--mix',action='store_true', help='mix multiple channels\t[False]')
     parser.add_argument('-n', '--norm',action='store_true', help='normalize audio and remove DC offset\t[False]')
     parser.add_argument('-f', '--fade',type=int, help='target buffer fade out in samples default is exponential fade\t[256]')
-    parser.add_argument('-l', '--loud',action='store_true', help='make loud\t[False]')
+    parser.add_argument('-r', '--reverse',action='store_true', help='reverse audio buffer\t[False]')
     parser.add_argument('-p', '--phase',action='store_true', help='apply phase vocoder timestretch\t[False]')
     parser.add_argument('-t', '--trim',action='store_true', help='trim begining and end of file based on amplitude\t[False]')
     args = parser.parse_args()
@@ -120,9 +116,9 @@ if __name__ == '__main__':
     else:
         exts = ['aif','wav']
     
-    mix   = args.mix
-    norm  = args.norm
-    loud  = args.loud
+    mix      = args.mix
+    norm     = args.norm
+    reverse  = args.reverse
     trim  = args.trim
     phase = args.phase
     if args.fade is not None:
@@ -135,5 +131,5 @@ if __name__ == '__main__':
     else:
         module = 'G0'    
     #now batch process all the inputs and autogenerate the mungo WAV files
-    data = read_aifs_or_wavs(in_dir,exts,module,mix,norm,phase,fade)
+    data = read_aifs_or_wavs(in_dir,exts,module,mix,trim,norm,phase,reverse,fade)
     write_mungo(mungo_out_dir,data,module)

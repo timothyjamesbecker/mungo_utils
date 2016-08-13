@@ -23,25 +23,40 @@ def multi_to_mono(multi,mix=True):
     return A,rate
 
 #remove DC offset and normalize the signal
-def normalize(mono,fs,trim=True,limit=np.int32(4),lowcut=200,order=6):
-    if trim: mono = trim_start(mono)
-    #high pass the audio
-    mono = np.array(butter_highpass_filter(mono,lowcut=lowcut,fs=fs,order=order),dtype='i4')
+def normalize(mono,limit=4,prop=0.25):
+    #skip pass begining transients
+    skip = np.int32(len(mono)*prop)
+    print('normalization skipping past %s samples'%skip)
     #center the average of the signal
     print('audio array of %s'%type(mono[0]))    
-    c = np.int32(np.int32(round(np.mean(mono),0)))
+    c = np.int32(np.int32(round(np.mean(mono[skip:]),0)))
     print('amplitude center at %s correcting for DC offset'%c)
-    mono -= c
+    for i in range(len(mono)): #hard clipping on  the transients
+        mono[i] = min(np.iinfo(np.int32).max-limit,mono[i]-c,max(np.iinfo(np.int32).min+limit,mono[i]-c))
+    max_pos = np.argmax(np.abs(mono))
+    print('file peak at position %s'%max_pos)
+    #high pass the audio
+    mono = fft_high_pass(mono)
     c = np.int32(np.int32(round(np.mean(mono),0)))
     print('correction of amplitude center now at %s correcting for DC offset'%c)
     return mono
 
 #trim the start of the audio array if it is below the threashold
-def trim_start(mono,threshold=512):
-    i = 0
-    while i < len(mono) and np.abs(mono[i]) <= threshold: i += 1
-    print('trimed to sample start %s'%i)
-    return mono[i:]
+def trim(mono,start_threshold=512,stop_threshold=48,min_samples=96):
+    i,j = 0,len(mono)-1
+    while i < len(mono)-1 and np.abs(mono[i]) <= start_threshold: i += 1
+    while j > 0 and np.abs(mono[j])           <= stop_threshold:  j -= 1
+    #now check the indecies
+    if i < j and j-i > min_samples:
+        print('trimed to sample start %s'%i)
+        print('trimed to sample end %s'%j)
+        return mono[i:j]
+    else:
+        return mono
+
+#reverse the buffer
+def reverse(mono):
+    return mono[::-1]
 
 #apply a dcreasing vloume envelope to the array
 def fade_out(mono,nsamples,log=False):
@@ -62,11 +77,17 @@ def fade_out(mono,nsamples,log=False):
     #print(mono[-1*nsamples:])
     return mono
 
+def fft_high_pass(data):
+    A = np.fft.rfft(data)
+    #print('fft shape is %s'%A.shape)
+    A[0:10] = 0.0
+    return np.array(np.fft.irfft(A),dtype='i4')
+
 #steep high pass for DC offset filtering
-def butter_highpass_filter(data, lowcut, fs, order=6):
-    b, a = sps.butter(order, [lowcut/(0.5*fs)], btype='high')
+def butter_highpass_filter(data):
+    b, a = sps.butter(6, [200.0/(0.5*len(data))], btype='high')
     y = sps.lfilter(b, a, data)
-    return y
+    return np.array(y,dtype='i4')
 
 #up or down samples based on the target samples
 #using scipy.signal.resample which is an FFT based resampling method (which is slow but decent sounding)
