@@ -167,29 +167,41 @@ _sampwidth_dtypes = {1: _np.uint8,
                      3: _np.int32,
                      4: _np.int32}
 _sampwidth_ranges = {1: (0, 256),
-                     2: (-2**15, 2**15),
-                     3: (-2**23, 2**23),
-                     4: (-2**31, 2**31)}
+                     2: (-2**15, 2**15-1),
+                     3: (-2**23, 2**23-1),
+                     4: (-2**31, 2**31-1)}
 
 
-def _scale_to_sampwidth(data, sampwidth, vmin, vmax):
-    # Scale and translate the values to fit the range of the data type
-    # associated with the given sampwidth.
+#def _scale_to_sampwidth(data, sampwidth, vmin, vmax):
+#    # Scale and translate the values to fit the range of the data type
+#    # associated with the given sampwidth.
+#
+#    data = data.clip(vmin, vmax)
+#
+#    dt = _sampwidth_dtypes[sampwidth]
+#    if vmax == vmin:
+#        data = _np.zeros(data.shape, dtype=dt)
+#    else:
+#        outmin, outmax = _sampwidth_ranges[sampwidth]
+#        if outmin != vmin or outmax != vmax:
+#            data = ((float(outmax - outmin)) * (data - vmin) /
+#                    (vmax - vmin)).astype(_np.int64) + outmin
+#            data[data == outmax] = outmax - 1
+#        data = data.astype(dt)
+#
+#    return data
 
-    data = data.clip(vmin, vmax)
-
-    dt = _sampwidth_dtypes[sampwidth]
-    if vmax == vmin:
-        data = _np.zeros(data.shape, dtyp=dt)
-    else:
+def _scale_to_sampwidth(data,sampwidth, vmin, vmax):
+    mean = _np.float32(_np.mean(data))          #get center
+    data = _np.array(data,dtype=_np.float32)    #convert
+    data -= mean                                #mean shift offset
+    peak = _np.max(_np.abs(data))               #find new peak    
+    dt = _sampwidth_dtypes[sampwidth]           #scale into the destination size
+    if vmin != vmax:
         outmin, outmax = _sampwidth_ranges[sampwidth]
-        if outmin != vmin or outmax != vmax:
-            data = ((float(outmax - outmin)) * (data - vmin) /
-                    (vmax - vmin)).astype(_np.int64) + outmin
-            data[data == outmax] = outmax - 1
-        data = data.astype(dt)
-
-    return data
+        scale = _np.float32(outmax)/peak
+        data *= scale        
+    return data.astype(dt)
 
 
 def write(file, data, rate, scale=None, sampwidth=None):

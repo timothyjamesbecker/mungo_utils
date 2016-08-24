@@ -4,6 +4,7 @@
 import argparse
 import os
 import glob
+import numpy as np
 #here are libraries that can handle 24-bit depths
 import wavio
 import aifcio
@@ -74,6 +75,42 @@ def write_mungo(out_dir,
         wavio.write(last_dir+prefix[module]+str(j)+'.wav',data[i],len(data[i]),sampwidth=2)
         j += 1
     return True
+
+# m is the number of files to generate using the map
+# D:x is the modulus impulse, y is the step, z is the scale, n is the noise prob
+def gen_c0_IRs(out_dir,m=100,b=int(12E3),t=0.1,
+               D={'x':[31,33,91,113],'y':[2,4,8,16],'z':[1.01,1.5]}):
+    if not os.path.exists(out_dir): os.makedirs(out_dir)
+    data = []
+    for i in range(m):
+        h = np.random.choice([1,2,4])
+        new = [0 for j in range(b)]
+        for y in range(h):
+            s = np.random.choice([1,2,3])
+            if s==1:
+                print('EXP')
+                new = list(dsp.fade_out(dsp.impulse_exp(new),b))
+            if s==2:
+                print('HARM')
+                r = np.random.choice([1,2,4])
+                for x in range(r):
+                    new = list(dsp.fade_out(dsp.fft_high_pass(dsp.impulse_harm(new,{'x':[16,32,64,81]})),b))
+            if s==3:
+                print('RAND')
+                new = list(dsp.fade_out(dsp.impulse_rand(new),b))
+            if np.random.choice([True,False],p=[2*t,1.0-2*t]):
+                new = new[::-1]
+        data += [dsp.fft_high_pass(new)]
+    j = 0
+    for i in range(len(data)):
+        if j%10==0: #make a new directory if needed
+            j,last_dir = 0,out_dir+'/'+str(i/10)+'/'
+        if not os.path.exists(last_dir):
+            os.makedirs(last_dir)
+        wavio.write(last_dir+'W'+str(j)+'.wav',data[i],len(data[i]),sampwidth=2)
+        j += 1
+    return True
+               
 
 #now can be used as a library too: import mungo_utils
 if __name__ == '__main__':

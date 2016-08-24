@@ -100,6 +100,50 @@ def resample(mono,target,module):
 def bit_convert(mono,output_type='i2',dither=True):
     return []
 
+def sin_shape(mono,r):
+    l = len(mono)
+    f = np.abs(np.sin([i for i in range(0,l,r)]))
+    i,s = np.float(0.0),1.0/np.float32(l)
+    for i in range(0,l,r):
+        mono[i] = i*s*f[i]
+    return np.array(mono,dtype='i4')
+
+#n is a fraction of the size 0.5 => 12E3 will have
+def impulse_exp(mono):
+    l = len(mono)
+    r = np.random.choice([0.1,0.2,0.4])
+    i = np.uint32(1)
+    while i < len(mono):
+        mono[i-1] = np.iinfo(np.int32).max                         #z is the scale of affect
+        mono[i]   = np.iinfo(np.int32).min                         #with single impulses
+        i += int(round(i*r,0)+1)
+    return np.array(mono[1:l]+[0],dtype='i4')
+
+#n is a fraction of the size 0.5 => 12E3 will have
+def impulse_harm(mono,D):
+    l = len(mono)
+    w = np.random.choice([2,4,9,13,16,32,49,81,121])
+    for i in range(1,l):
+        for j in D['x']:
+            if i%j==0 and i+w/2+1<len(mono):
+                mono[i-1:i+w/2]     = [np.iinfo(np.int32).max for k in range(w/2)]
+                mono[i+w/2:i+w/2+1] = [np.iinfo(np.int32).min for k in range(w/2)]
+                break
+    return np.array(mono[1:l]+[0],dtype='i4')
+
+#dense random cluster
+def impulse_rand(mono):
+    d = np.random.choice([i for i in range(len(mono)/10)])
+    N = np.sort(np.random.normal(0,int(4*len(mono)),size=d))
+    N = N[d/2:]
+    a,b = np.min(N),np.max(N)
+    N = sorted(list(set(np.array(np.round(((N-a)/(b-a))*(len(mono)-2),0),dtype='i4'))))
+    for i in N:
+        if i < len(mono):
+            mono[i]   = np.iinfo(np.int32).max 
+            mono[i+1] = np.iinfo(np.int32).min
+    return np.array(mono[1:len(mono)]+[0],dtype='i4')
+    
 # (c) V Lazzarini, 2010, GPL
 def phase_vocoder(mono, sr, N=2048, tscale= 1.0):
     L,H = len(mono),N/4
@@ -107,7 +151,6 @@ def phase_vocoder(mono, sr, N=2048, tscale= 1.0):
     phi  = np.zeros(N)
     out = np.zeros(N, dtype=complex)
     sigout = np.zeros(L/tscale+N)
-    
     # max input amp, window
     amp = max(mono)
     win = sps.hanning(N)
@@ -119,16 +162,13 @@ def phase_vocoder(mono, sr, N=2048, tscale= 1.0):
         p1 = int(p)
         spec1 =  np.fft.fft(win*mono[p1:p1+N])
         spec2 =  np.fft.fft(win*mono[p1+H:p1+N+H])
-
         # take their phase difference and integrate
         phi += (np.angle(spec2) - np.angle(spec1))
-        
         # bring the phase back to between pi and -pi
         for i in phi:
             while i   > np.pi: i -= 2*np.pi
             while i <= -np.pi: i += 2*np.pi
         out.real, out.imag = np.cos(phi), np.sin(phi)
-
         # inverse FFT and overlap-add
         sigout[pp:pp+N] += (win*np.fft.ifft(abs(spec2)*out)).real
         pp += H
@@ -136,5 +176,49 @@ def phase_vocoder(mono, sr, N=2048, tscale= 1.0):
     print('')
     return np.array(amp*sigout/max(sigout), dtype='int16')
 
-def pitch_shifter(mono, sr):
-    return []
+# (c) V Lazzarini, 2010, GPL
+def pitch_shifter(mono, pitch, time):
+    sigout = np.array(mono,dtype='f4')
+    size  = time                         # delay time in samples
+    delay = np.zeros((size,),dtype='f4') # delay line
+    env = np.bartlett(size)              # fade envelope table
+    tap1,tap2,wp = 0 ,size/2,0           #taps
+    for i in range(len(mono)):
+        delay = sigout[i]                                                 # fill the delay line
+        frac = tap1 - int(tap1)                                         # first tap, linear interp readout
+        if tap1 < size - 1 : delaynext = delay[tap1+1]                  # not at boundry
+        else: delaynext = delay[0]                                      # wrap back to the begining
+        sig1  =  delay[int(tap1)] + frac*(delaynext - delay[int(tap1)]) # invert and mix
+        frac = tap2 - int(tap2)                                         # second tap, linear interp readout
+        if tap2 < size - 1 : delaynext = delay[tap2+1]
+        else: delaynext = delay[0]
+        sig2  =  delay[int(tap2)] + frac*(delaynext - delay[int(tap2)])
+        # fade envelope positions
+        ep1 = tap1 - wp
+        if ep1 <  0: ep1 += size
+        ep2 = tap2 - wp
+        if ep2 <  0: ep2 += size
+        # combine tap signals
+        sigout[i] = env[ep1]*sig1 + env[ep2]*sig2
+        # increment tap pos according to pitch transposition
+        tap1 += pitch
+        tap2 = tap1 + size/2
+        # keep tap pos within the delay memory bounds
+        while tap1 >= size: tap1 -= size
+        while tap1 < 0: tap1 += size
+        while tap2 >= size: tap2 -= size
+        while tap2 < 0: tap2 += size
+        # increment write pos
+        wp += 1
+        if wp == size: wp = 0
+    return np.array(sigout,dtype='int16')
+    
+    (sr,signalin) = wavfile.read(sys.argv[2])
+    pitch = 2.**(float(sys.argv[1])/12.)
+    signalout = zeros(len(signalin))
+    
+    fund = 131.
+    dsize = int(sr/(fund*0.5))
+    print dsize
+    signalout = pitchshifter(signalin,signalout,pitch,dsize)
+    wavfile.write(sys.argv[3],sr,array((signalout+signalin)/2., dtype='int16'))
