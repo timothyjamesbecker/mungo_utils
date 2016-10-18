@@ -76,29 +76,35 @@ def write_mungo(out_dir,
         j += 1
     return True
 
-# m is the number of files to generate using the map
-# D:x is the modulus impulse, y is the step, z is the scale, n is the noise prob
-def gen_c0_IRs(out_dir,m=100,b=int(12E3),t=0.1,
-               D={'x':[31,33,91,113],'y':[2,4,8,16],'z':[1.01,1.5]}):
+# this is a random IR generator with three main modes:
+#[1] EXP exponential decay type IRs
+#[2] HARM harmonic type (integer ratios) IRS
+#[3] RAND random aka implulse noise type IRs
+#m is the number of random IRs to make
+#b is the buffer size
+#s is the number of passes for each file
+#r is the number of harmonic passes
+def gen_c0_IRs(out_dir,IRs=100,buffersize=int(12E3),rev_prob=0.1,types=['EXP','HARM','RAND'],
+               H=[16,32,64,81],passes=[1,2,3],harmonics=[1,2,4]):
     if not os.path.exists(out_dir): os.makedirs(out_dir)
     data = []
-    for i in range(m):
-        h = np.random.choice([1,2,4])
-        new = [0 for j in range(b)]
+    for i in range(IRs):
+        h = np.random.choice(passes)
+        new = [0 for j in range(buffersize)]
         for y in range(h):
-            s = np.random.choice([1,2,3])
-            if s==1:
+            s = np.random.choice(types)
+            if s=='EXP':
                 print('EXP')
-                new = list(dsp.fade_out(dsp.impulse_exp(new),b))
-            if s==2:
+                new = list(dsp.fade_out(dsp.impulse_exp(new),buffersize))
+            if s=='HARM':
                 print('HARM')
-                r = np.random.choice([1,2,4])
+                r = np.random.choice(harmonics)
                 for x in range(r):
-                    new = list(dsp.fade_out(dsp.fft_high_pass(dsp.impulse_harm(new,{'x':[16,32,64,81]})),b))
-            if s==3:
+                    new = list(dsp.fade_out(dsp.fft_high_pass(dsp.impulse_harm(new,H)),buffersize))
+            if s=='RAND':
                 print('RAND')
-                new = list(dsp.fade_out(dsp.impulse_rand(new),b))
-            if np.random.choice([True,False],p=[2*t,1.0-2*t]):
+                new = list(dsp.fade_out(dsp.impulse_rand(new),buffersize))
+            if np.random.choice([True,False],p=[2*rev_prob,1.0-2*rev_prob]):
                 new = new[::-1]
         data += [dsp.fft_high_pass(new)]
     j = 0
@@ -110,7 +116,6 @@ def gen_c0_IRs(out_dir,m=100,b=int(12E3),t=0.1,
         wavio.write(last_dir+'W'+str(j)+'.wav',data[i],len(data[i]),sampwidth=2)
         j += 1
     return True
-               
 
 #now can be used as a library too: import mungo_utils
 if __name__ == '__main__':

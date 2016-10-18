@@ -120,11 +120,11 @@ def impulse_exp(mono):
     return np.array(mono[1:l]+[0],dtype='i4')
 
 #n is a fraction of the size 0.5 => 12E3 will have
-def impulse_harm(mono,D):
+def impulse_harm(mono,H):
     l = len(mono)
     w = np.random.choice([2,4,9,13,16,32,49,81,121])
     for i in range(1,l):
-        for j in D['x']:
+        for j in H:
             if i%j==0 and i+w/2+1<len(mono):
                 mono[i-1:i+w/2]     = [np.iinfo(np.int32).max for k in range(w/2)]
                 mono[i+w/2:i+w/2+1] = [np.iinfo(np.int32).min for k in range(w/2)]
