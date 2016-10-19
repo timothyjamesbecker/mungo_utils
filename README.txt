@@ -34,7 +34,7 @@ optional arguments:
   -p, --phase           apply phase vocoder timestretch [False]
   -t, --trim            trim begining and end of file based on amplitude[False]
   
-  [EXAMPLE USING THE GPL TEST FILES]
+[EXAMPLE USING THE GPL TEST FILES]
   
 ./mungo_utils.py -I "./test/*" -O ./test/converted/ -T C0 -n
 using audio input directory:
