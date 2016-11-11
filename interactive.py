@@ -18,7 +18,7 @@ trim                = False
 #mu.write_mungo(mungo_out_dir,data,target_mungo_module)
 
 
-#munfo_out_dir will create as many folders of IRs as needed
+#mungo_out_dir will create as many folders of IRs as needed
 #IRs is the total number of random IRs to generate
 #buffersize is like the target module, aka  how many samples
 #rev_prob is the probabilty at each IR generation pass to reverse the IR

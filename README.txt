@@ -16,7 +16,7 @@ Automated Mungo Enterprises Eurorack Focused WAV Bit Depth and Sample Rate
 Conversion Utilities Tested with WAV and AIFF audio files with 1|2 chnannels
 and 16/24 bit depths provide a folder glob pattern to search and this utility
 will match those full paths and one by one convert to the target Mungo Module
-based on the published buffer sizes there for exampl the C0 has a buffer of
+based on the published buffer sizes there. For example the C0 has a buffer of
 12000, so any audio file will be auto resampled to that size converted to a 16
 bit WAV file format
 
@@ -34,7 +34,7 @@ optional arguments:
   -p, --phase           apply phase vocoder timestretch [False]
   -t, --trim            trim begining and end of file based on amplitude[False]
   
-  [EXAMPLE USING THE GPL TEST FILES]
+[EXAMPLE USING THE GPL TEST FILES]
   
 ./mungo_utils.py -I "./test/*" -O ./test/converted/ -T C0 -n
 using audio input directory:
@@ -149,3 +149,19 @@ amplitude center at 1 correcting for DC offset
 correction of amplitude center now at 0 correcting for DC offset
 processing fade out
 ---------------------------------------------------
+
+[Interactive Notes: Preliminary]
+
+Additionally the mungo_utils.py python script can be imported as a module, exposing three high-level functions: (1) reading audio files and converting to a 1D array structure for signal processing, (2) writing 1D array strutures to 16 bit mono wav (aka what all Mungo modules want), (3) Experimental Generative IR creator.  
+
+(3) Experimental Generative IR creator
+This function does not take in audio files, but starts generation with an empty 1D array buffer (absolute silence).  Next a series of random passes pick among parameters and add impulses into the buffer.  The user can specify the total number of IRs to generate and this function will make as many folders as required (with the Mungo W0.wav-W9.wav file names inside each).  Suggested use is to play around with the parameters (like the H list H=[16,32,64]) and start a run that generates many IRs, auditioning the ones that sound interesting.
+
+>impulse type
+  HARM = integer related impulses
+  EXP = exponential decay impulses (reverb/spatial like)
+  RAND = ranomly distributed impulse 
+>reverse probabilty 
+  provides a chance to reverse the buffer
+>H
+  harmonic list of integers to generate haromics
