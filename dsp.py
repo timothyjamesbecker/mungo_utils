@@ -4,6 +4,7 @@
 import sys
 import numpy as np
 import scipy.signal as sps
+import matplotlib.pyplot as plt
 
 #either mix all channels together or take the first channel only
 def multi_to_mono(multi,mix=True):
@@ -108,6 +109,25 @@ def sin_shape(mono,r):
         mono[i] = i*s*f[i]
     return np.array(mono,dtype='i4')
 
+#creates an AC-centered non-liniar wavetable shape taking coefficents C => sum(C)=1
+def nonlin_shape(l,C,h,plot=False,limit=4):
+    lin = range(l)
+    C = np.asarray(C,dtype='f4')
+    C /= np.sum(C) #normalize to 1.0
+    nonlin = C[0]*np.arctan(lin)+C[1]*np.log1p(lin)+C[2]*np.power(lin,0.5)+C[3] \
+             *np.power(lin,0.25)+C[4]*np.power(lin,0.125)+C[5]*np.sin(h*np.pi*np.array(lin,dtype='f4')/l)**2
+    #clear -inf and +inf asymptopts
+    for i in range(len(nonlin)):
+        if nonlin[i]==-np.inf or nonlin[i]==np.inf or np.isnan(nonlin[0]): nonlin[i]=0
+    MIN,MAX = np.min(nonlin),np.max(nonlin)     #now scale it to [np.iinfo(np.int32).min+4,np.iinfo(np.int32).max-4]
+    nonlin -= (MAX-MIN)/2.0                     #center it
+    nonlin *= ((np.iinfo(np.int32).max-limit)-(np.iinfo(np.int32).min+limit))/(MAX-MIN) #scale it
+    nonlin = np.array(np.round(nonlin,0),dtype='i4')
+    if plot:
+        plt.plot(nonlin)
+        plt.show()
+    return nonlin
+    
 #n is a fraction of the size 0.5 => 12E3 will have
 def impulse_exp(mono):
     l = len(mono)

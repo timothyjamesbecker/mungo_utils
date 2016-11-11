@@ -84,7 +84,7 @@ def write_mungo(out_dir,
 #b is the buffer size
 #s is the number of passes for each file
 #r is the number of harmonic passes
-def gen_c0_IRs(out_dir,IRs=100,buffersize=int(12E3),rev_prob=0.1,types=['EXP','HARM','RAND'],
+def gen_C0_IRs(out_dir,IRs=100,buffersize=int(12E3),rev_prob=0.1,types=['EXP','HARM','RAND'],
                H=[16,32,64,81],passes=[1,2,3],harmonics=[1,2,4]):
     if not os.path.exists(out_dir): os.makedirs(out_dir)
     data = []
@@ -117,6 +117,23 @@ def gen_c0_IRs(out_dir,IRs=100,buffersize=int(12E3),rev_prob=0.1,types=['EXP','H
         j += 1
     return True
 
+def gen_W0_WTs(out_dir,WTs=100,buffersize=int(4E3),c_range=[0,10],h_range=[0,16],plot=False):
+    if not os.path.exists(out_dir): os.makedirs(out_dir)
+    data = []
+    for i in range(WTs):
+        h = np.random.choice(range(h_range[0],h_range[1]))
+        C = np.random.choice(range(c_range[0],c_range[1]),6)
+        data += [dsp.nonlin_shape(buffersize,C,h,plot)]
+    j = 0
+    for i in range(len(data)):
+        if j%10==0: #make a new directory if needed
+            j,last_dir = 0,out_dir+'/'+str(i/10)+'/'
+        if not os.path.exists(last_dir):
+            os.makedirs(last_dir)
+        wavio.write(last_dir+'W'+str(j)+'.wav',data[i],len(data[i]),sampwidth=2)
+        j += 1
+    return True    
+    
 #now can be used as a library too: import mungo_utils
 if __name__ == '__main__':
     #parse commandline arguments for usage
