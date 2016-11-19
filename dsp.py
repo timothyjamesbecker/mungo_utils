@@ -110,22 +110,29 @@ def sin_shape(mono,r):
     return np.array(mono,dtype='i4')
 
 #creates an AC-centered non-liniar wavetable shape taking coefficents C => sum(C)=1
-def nonlin_shape(l,C,h,plot=False,limit=4):
-    lin = range(l)
-    C = np.asarray(C,dtype='f4')
-    C /= np.sum(C) #normalize to 1.0
-    nonlin = C[0]*np.arctan(lin)+C[1]*np.log1p(lin)+C[2]*np.power(lin,0.5)+C[3] \
-             *np.power(lin,0.25)+C[4]*np.power(lin,0.125)+C[5]*np.sin(h*np.pi*np.array(lin,dtype='f4')/l)**2
-    #clear -inf and +inf asymptopts
-    for i in range(len(nonlin)):
-        if nonlin[i]==-np.inf or nonlin[i]==np.inf or np.isnan(nonlin[0]): nonlin[i]=0
-    MIN,MAX = np.min(nonlin),np.max(nonlin)     #now scale it to [np.iinfo(np.int32).min+4,np.iinfo(np.int32).max-4]
-    nonlin -= (MAX-MIN)/2.0                     #center it
-    nonlin *= ((np.iinfo(np.int32).max-limit)-(np.iinfo(np.int32).min+limit))/(MAX-MIN) #scale it
-    nonlin = np.array(np.round(nonlin,0),dtype='i4')
-    if plot:
-        plt.plot(nonlin)
-        plt.show()
+def nonlin_shape(l,C,h,plot=False,limit=0):
+    lin = np.arange(0.0,2.0*np.pi,2.0*np.pi/(l/2.0))
+    if len(lin) == l/2:
+        C = np.asarray(C,dtype='f4')
+        C /= np.sum(C) #normalize to 1.0
+        #the waveshaping function here
+        raw = C[0]*np.tanh(lin[:len(lin/2)+1])+C[1]*np.log1p(lin[:len(lin/2)+1])+\
+              C[2]*np.power(lin[:len(lin/2)+1],0.125)+C[3]*np.power(lin[:len(lin/2)+1],0.25)+\
+              C[4]*np.power(lin[:len(lin/2)+1],0.5)+C[5]*np.cos(lin[:len(lin/2)+1])**2
+        #can extend into some type of non linear grammar (with a non linear parser)
+        nonlin = np.zeros((l,),dtype='f4')
+        nonlin[l/2-1:-1] = raw
+        nonlin[:l/2]     = raw[::-1]*-1.0
+        nonlin = nonlin[:-2]
+        MIN,MAX = np.min(nonlin),np.max(nonlin)     #now scale it to [np.iinfo(np.int32).min+4,np.iinfo(np.int32).max-4]
+        nonlin *= ((np.iinfo(np.int32).max-limit)-(np.iinfo(np.int32).min+limit))/(MAX-MIN) #scale it
+        nonlin = np.array(np.round(nonlin,0),dtype='i4')
+        if plot:
+            plt.plot(nonlin)
+            plt.show()
+    else:
+        print('length error')
+        nonlin = np.zeros((l,),dtype='f4')
     return nonlin
     
 #n is a fraction of the size 0.5 => 12E3 will have

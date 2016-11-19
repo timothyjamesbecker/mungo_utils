@@ -37,6 +37,6 @@ trim                = False
 mu.gen_W0_WTs(mungo_out_dir,
               WTs=10,
               buffersize=int(4E3),
-              c_range=[0,10000],
-              h_range=[-4,32],
+              c_range=[0,1000],
+              h_range=[-10,32],
               plot=True)
