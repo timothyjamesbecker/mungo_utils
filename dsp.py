@@ -116,9 +116,12 @@ def nonlin_shape(l,C,h,plot=False,limit=0):
         C = np.asarray(C,dtype='f4')
         C /= np.sum(C) #normalize to 1.0
         #the waveshaping function here
-        raw = C[0]*np.tanh(lin[:len(lin/2)+1])+C[1]*np.log1p(lin[:len(lin/2)+1])+\
-              C[2]*np.power(lin[:len(lin/2)+1],0.125)+C[3]*np.power(lin[:len(lin/2)+1],0.25)+\
-              C[4]*np.power(lin[:len(lin/2)+1],0.5)+C[5]*np.cos(lin[:len(lin/2)+1])**2
+        raw = C[0]*lin[:len(lin/2)+1]/h+\
+              C[1]*np.power(lin[:len(lin/2)+1]*h,0.5) +\
+              C[2]*np.power(lin[:len(lin/2)+1]*h,0.25) +\
+              C[3]*np.log1p(lin[:len(lin/2)+1]**h) +\
+              C[4]*np.tanh(lin[:len(lin/2)+1]**h) +\
+              C[5]*np.sin(h*np.pi*np.array(lin[:len(lin/2)+1],dtype='f4')/l)**2
         #can extend into some type of non linear grammar (with a non linear parser)
         nonlin = np.zeros((l,),dtype='f4')
         nonlin[l/2-1:-1] = raw
@@ -126,6 +129,9 @@ def nonlin_shape(l,C,h,plot=False,limit=0):
         nonlin = nonlin[:-2]
         MIN,MAX = np.min(nonlin),np.max(nonlin)     #now scale it to [np.iinfo(np.int32).min+4,np.iinfo(np.int32).max-4]
         nonlin *= ((np.iinfo(np.int32).max-limit)-(np.iinfo(np.int32).min+limit))/(MAX-MIN) #scale it
+        for i in range(1,len(nonlin)-1):
+            if nonlin[i]==-np.inf or nonlin[i]==np.inf or np.isnan(nonlin[i]):
+                nonlin[i] = (nonlin[i-1]+nonlin[i+1])/2.0
         nonlin = np.array(np.round(nonlin,0),dtype='i4')
         if plot:
             plt.plot(nonlin)

@@ -117,12 +117,11 @@ def gen_C0_IRs(out_dir,IRs=100,buffersize=int(12E3),rev_prob=0.1,types=['EXP','H
         j += 1
     return True
 
-def gen_W0_WTs(out_dir,WTs=100,buffersize=int(4E3),c_range=[0,10],h_range=[0,16],plot=False):
+def gen_W0_WTs(out_dir,WTs=10,buffersize=int(4E3),C=[0,0,0,1,1,1],h_range=range(10),plot=False):
     if not os.path.exists(out_dir): os.makedirs(out_dir)
     data = []
     for i in range(WTs):
-        h = np.random.choice(range(h_range[0],h_range[1]))
-        C = np.random.choice(range(c_range[0],c_range[1]),6)
+        h = h_range[i%(len(h_range))]
         data += [dsp.nonlin_shape(buffersize,C,h,plot)]
     j = 0
     for i in range(len(data)):
